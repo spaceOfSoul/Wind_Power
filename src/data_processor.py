@@ -4,8 +4,14 @@ sys.path.append('../src')
 
 import pandas as pd
 import numpy as np
+
+from astral import LocationInfo
+from astral.sun import sun
+import pytz
+import swifter
+
 from windpowerlib.wind_speed import logarithmic_profile
-from sklearnex import patch_sklearn, config_context
+from sklearnex import patch_sklearn
 patch_sklearn()
 
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -61,6 +67,7 @@ class UVTransformer(BaseEstimator, TransformerMixin):
 
         X['wind_speed'] = wind_speed
         X['wind_direction'] = wind_direction
+        del wind_speed, wind_direction
 
         return X
     
@@ -124,6 +131,77 @@ class WindTransformer(BaseEstimator, TransformerMixin):
                                                                   self.ref_height, 
                                                                   self.hub_height, # 소재지표고에 따라 변하게 해야할것같음, 다만 이 함수에 series로 넣으면 에러가 남.
                                                                   self.roughness)
+
+        return X
+    
+    def fit_transform(self, X, y=None):
+        return self.fit(X).transform(X)
+
+
+class FeatureTransformer(BaseEstimator, TransformerMixin):
+    """Customize Features by sklearn style.
+    """
+    def is_day_or_night(self, dt):
+        location = LocationInfo("gyeongju", "Korea", "Asia/Seoul", 35.73088463, 129.3672852)
+
+        s = sun(location.observer, date=dt)
+        sunrise = s['sunrise']
+        sunset = s['sunset']
+    #     dt = dt.tz_localize('Asia/Seoul')
+        if sunrise < dt < sunset:
+                return 0 # Day
+        else:
+                return 1 # Night.
+
+    def fit(self,
+            X:pd.DataFrame,
+            y=None):
+        return self
+    
+    def transform(self, 
+                  X:pd.DataFrame,
+                  y=None):
+        
+        """Feature Engineering Codes
+        """
+        # get season feature
+        X['season'] = (X['dt'].dt.month % 12 // 3 + 1)
+        # X['season'] = (X['dt'].dt.month % 12 // 3 + 1).map({
+        #     1: 'winter',
+        #     2: 'spring',
+        #     3: 'summer',
+        #     4: 'autumn'
+        #     })
+        
+        # get tke feature
+        u_fluc = X['wind_u_10m'] - X['wind_u_10m'].mean()
+        v_fluc = X['wind_v_10m'] - X['wind_v_10m'].mean()
+
+        u_mean = (u_fluc ** 2).rolling(3, min_periods=1).mean()
+        v_mean = (v_fluc ** 2).rolling(3, min_periods=1).mean()
+
+        X['tke'] = (u_mean + v_mean)*0.5
+        del u_fluc, v_fluc, u_mean, v_mean
+        
+        # get wind shear feature
+        if not 'NacelleWindSpeed[m/s]' in X.columns:
+            wind_fluc = np.log1p(X['wind_speed_100m']) - np.log1p(X['wind_speed'])
+        else:
+            wind_fluc = np.log1p(X['NacelleWindSpeed[m/s]']) - np.log1p(X['wind_speed'])
+        dz = np.log(100)-np.log(10) # 고도에 따라 왼쪽 값을 변경해줘야함
+        X['wind_shear'] = wind_fluc / dz
+        del wind_fluc, dz
+
+        # get turbulence intensity alpha feature
+        wind_fluc = X['wind_speed'] - X['wind_speed'].mean()
+        X['turbulence_intensity'] = wind_fluc / X['wind_speed'].mean()
+        del wind_fluc
+
+        # get day/night feature
+        # 경주 - 35.73088463, 129.3672852
+        # 영광 - 35.25257837, 126.3422734
+        X['Night'] = X['dt'].swifter.apply(lambda x : self.is_day_or_night(x))
+
 
         return X
     
