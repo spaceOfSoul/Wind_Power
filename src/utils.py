@@ -1,6 +1,21 @@
 import pandas as pd
 import numpy as np
 
+class DataConnector:
+    def get_data(self):
+        raise NotImplementedError
+    
+    def put_data(self):
+        raise NotImplementedError
+    
+class ObjectConnector:
+    def get_object(self):
+        raise NotImplementedError
+    
+    def put_object(self):
+        raise NotImplementedError
+
+
 def reduce_mem_usage(df: pd.DataFrame,
                     use_float16: bool = False) -> pd.DataFrame:
     """
@@ -46,3 +61,23 @@ def reduce_mem_usage(df: pd.DataFrame,
     print("Decreased by {:.1f}%".format(100 * (start_mem - end_mem) / start_mem))
     
     return df
+
+def uv_to_wsd(u_wind_speed, v_wind_speed):
+    """ 
+        Convert u, v vector to wind speed and direction.
+    """
+    u_ws = u_wind_speed.to_numpy()
+    v_ws = v_wind_speed.to_numpy()
+
+    # NOTE: http://colaweb.gmu.edu/dev/clim301/lectures/wind/wind-uv
+    wind_speed = np.nansum([u_ws**2, v_ws**2], axis=0)**(1/2.)
+
+    # math degree
+    wind_direction = np.rad2deg(np.arctan2(v_ws, u_ws+1e-6))
+    wind_direction[wind_direction < 0] += 360
+
+    # meteorological degree
+    wind_direction = 270 - wind_direction
+    wind_direction[wind_direction < 0] += 360
+
+    return wind_speed, wind_direction
