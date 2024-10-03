@@ -1,6 +1,8 @@
 input_path = "../input/"
 model_output = "../models/"
 test_size = 0.2
+mlflow = False
+target = 'energy_kwh'
 xgb_params = {
     'tree_method': 'auto',
     # 'n_estimators': 1000,
