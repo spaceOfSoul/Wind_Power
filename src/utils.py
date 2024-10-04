@@ -1,11 +1,46 @@
 import pandas as pd
 import numpy as np
+import config
 
 class DataConnector:
-    def get_data(self):
-        raise NotImplementedError
+    """Data Class, get or put
+
+    Parameters:
+    file_name (str): name of the file
+    format (str): file data format [currently supports parquet format only] (default: parquet)
+    """
+    def get_data(self,
+                 start_date:str='2020-01-01',
+                 end_date:str='2023-01-01',
+                 plant_name:str='경주풍력',
+                 format='parquet'):
+        
+        train_y = pd.read_parquet(config.input_path + "train_y.parquet").rename({'end_datetime': 'dt'}, axis=1)
+
+        if plant_name == "경주풍력":
+            ldaps = pd.read_parquet(config.input_path + "train_ldaps_gyeongju.parquet")
+        else:
+            ldaps = pd.read_parquet(config.input_path + "train_ldaps_yeonggwang.parquet")
+
+        datas = [train_y, ldaps]
+        
+        for d in datas:
+            try:
+                d['dt'] = (pd.to_datetime(d['dt'])
+                            .dt
+                            .tz_convert("Asia/Seoul"))
+            except TypeError:
+                d['dt'] = (pd.to_datetime(d['dt'])
+                            .dt
+                            .tz_localize("Asia/Seoul"))
+
+        train_y = (train_y.loc[(train_y['plant_name'] == plant_name)
+                               & (train_y['dt']).between(start_date, end_date, inclusive='left')])
+        ldaps = ldaps.loc[ldaps['dt'].between(start_date, end_date, inclusive='left')]
+
+        return train_y, ldaps
     
-    def put_data(self):
+    def put_data(self, file_name, format='parquet'):
         raise NotImplementedError
     
 class ObjectConnector:
