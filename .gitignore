@@ -1,2 +1,5 @@
 __pycache__
 .env
+*.xlsx
+*.parquet
+*.csv

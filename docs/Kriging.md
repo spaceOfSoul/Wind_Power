@@ -43,7 +43,7 @@
  즉, 데이터가 고정된 패턴 없이 변화하고 있어 장기적으로 일정한 성질을 유지한다.
 
  &rightarrow; 때문에 LSTM같은 순차적 특징을 찾아내는 모델보다는 비선형성을 고려하기 용이한 트리 기반의 모델이 더 유리함.
- 
+
  (의사결정나무(Decision Tree),
 랜덤포레스트(Random Forest), XGBoost(eXtreme Gradient Boosting), LGBM
 (Lighten Gradient Boosting Machine))
