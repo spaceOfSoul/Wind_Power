@@ -1,2 +1,6 @@
 __pycache__
 .env
+*.xlsx
+*.parquet
+*.csv
+.ipynb_checkpoints/
