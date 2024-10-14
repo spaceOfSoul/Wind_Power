@@ -4,6 +4,7 @@ sys.path.append('../src')
 
 import pandas as pd
 import numpy as np
+import dask.dataframe as dd
 
 from astral import LocationInfo
 from astral.sun import sun
@@ -157,21 +158,16 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
             X:pd.DataFrame,
             y=None):
         return self
-    
+
     def transform(self, 
-                  X:pd.DataFrame,
-                  y=None):
-        
-        """Feature Engineering Codes
+                X,  # dask dataframe으로 변경
+                y=None):
+        """Feature Engineering Codes with Dask
         """
+        X = dd.from_pandas(X, npartitions=4)  # dask DataFrame으로 변환, npartitions로 파티션 개수를 설정
+
         # get season feature
         X['season'] = (X['dt'].dt.month % 12 // 3 + 1)
-        # X['season'] = (X['dt'].dt.month % 12 // 3 + 1).map({
-        #     1: 'winter',
-        #     2: 'spring',
-        #     3: 'summer',
-        #     4: 'autumn'
-        #     })
         
         # get tke feature
         u_fluc = X['wind_u_10m'] - X['wind_u_10m'].mean()
@@ -180,15 +176,16 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
         u_mean = (u_fluc ** 2).rolling(3, min_periods=1).mean()
         v_mean = (v_fluc ** 2).rolling(3, min_periods=1).mean()
 
-        X['tke'] = (u_mean + v_mean)*0.5
+        X['tke'] = (u_mean + v_mean) * 0.5
         del u_fluc, v_fluc, u_mean, v_mean
-        
+
         # get wind shear feature
-        if not 'NacelleWindSpeed[m/s]' in X.columns:
+        if 'NacelleWindSpeed[m/s]' not in X.columns:
             wind_fluc = np.log1p(X['wind_speed_100m']) - np.log1p(X['wind_speed'])
         else:
             wind_fluc = np.log1p(X['NacelleWindSpeed[m/s]']) - np.log1p(X['wind_speed'])
-        dz = np.log(100)-np.log(10) # 고도에 따라 왼쪽 값을 변경해줘야함
+            
+        dz = np.log(100) - np.log(10)  # 고도에 따라 왼쪽 값을 변경해줘야함
         X['wind_shear'] = wind_fluc / dz
         del wind_fluc, dz
 
@@ -200,10 +197,56 @@ class FeatureTransformer(BaseEstimator, TransformerMixin):
         # get day/night feature
         # 경주 - 35.73088463, 129.3672852
         # 영광 - 35.25257837, 126.3422734
-        X['Night'] = X['dt'].swifter.apply(lambda x : self.is_day_or_night(x))
+        X['Night'] = X['dt'].apply(lambda x: self.is_day_or_night(x), meta=('x', 'bool'))
+
+        return X.compute()  # 결과를 반환하기 전에 compute()를 호출하여 실행
+    
+    # def transform(self, 
+    #               X:pd.DataFrame,
+    #               y=None):
+        
+    #     """Feature Engineering Codes
+    #     """
+    #     # get season feature
+    #     X['season'] = (X['dt'].dt.month % 12 // 3 + 1)
+    #     # X['season'] = (X['dt'].dt.month % 12 // 3 + 1).map({
+    #     #     1: 'winter',
+    #     #     2: 'spring',
+    #     #     3: 'summer',
+    #     #     4: 'autumn'
+    #     #     })
+        
+    #     # get tke feature
+    #     u_fluc = X['wind_u_10m'] - X['wind_u_10m'].mean()
+    #     v_fluc = X['wind_v_10m'] - X['wind_v_10m'].mean()
+
+    #     u_mean = (u_fluc ** 2).rolling(3, min_periods=1).mean()
+    #     v_mean = (v_fluc ** 2).rolling(3, min_periods=1).mean()
+
+    #     X['tke'] = (u_mean + v_mean)*0.5
+    #     del u_fluc, v_fluc, u_mean, v_mean
+        
+    #     # get wind shear feature
+    #     if not 'NacelleWindSpeed[m/s]' in X.columns:
+    #         wind_fluc = np.log1p(X['wind_speed_100m']) - np.log1p(X['wind_speed'])
+    #     else:
+    #         wind_fluc = np.log1p(X['NacelleWindSpeed[m/s]']) - np.log1p(X['wind_speed'])
+    #     dz = np.log(100)-np.log(10) # 고도에 따라 왼쪽 값을 변경해줘야함
+    #     X['wind_shear'] = wind_fluc / dz
+    #     del wind_fluc, dz
+
+    #     # get turbulence intensity alpha feature
+    #     wind_fluc = X['wind_speed'] - X['wind_speed'].mean()
+    #     X['turbulence_intensity'] = wind_fluc / X['wind_speed'].mean()
+    #     del wind_fluc
+
+    #     # get day/night feature
+    #     # 경주 - 35.73088463, 129.3672852
+    #     # 영광 - 35.25257837, 126.3422734
+    #     X['Night'] = X['dt'].swifter.apply(lambda x : self.is_day_or_night(x))
 
 
-        return X
+    #     return X
     
     def fit_transform(self, X, y=None):
         return self.fit(X).transform(X)
