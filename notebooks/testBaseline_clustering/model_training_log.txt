@@ -1,45 +1,45 @@
 Training GradientBoostingRegressor
-R2 Score: 30.89
-RMSE: 5034.97
-NMAE: 0.1970
+R2 Score: 30.82
+RMSE: 5037.31
+NMAE: 0.1971
 
 Training SVR
-R2 Score: 15.34
-RMSE: 5572.52
-NMAE: 0.2239
+R2 Score: 11.22
+RMSE: 5706.77
+NMAE: 0.2292
 
 Training RandomForestRegressor
-R2 Score: 24.24
-RMSE: 5271.52
-NMAE: 0.2030
+R2 Score: 23.99
+RMSE: 5280.22
+NMAE: 0.2034
 
 Training LinearRegression
-R2 Score: 24.05
-RMSE: 5278.07
+R2 Score: 24.06
+RMSE: 5277.81
 NMAE: 0.2082
 
 Training ExtraTreesRegressor
-R2 Score: 28.75
-RMSE: 5112.19
-NMAE: 0.1986
+R2 Score: 28.92
+RMSE: 5106.31
+NMAE: 0.1982
 
 Training AdaBoostRegressor
-R2 Score: 21.95
-RMSE: 5350.69
-NMAE: 0.2243
+R2 Score: 20.84
+RMSE: 5388.60
+NMAE: 0.2268
 
 Training DecisionTreeRegressor
-R2 Score: -23.06
-RMSE: 6718.67
-NMAE: 0.2446
+R2 Score: -24.06
+RMSE: 6745.95
+NMAE: 0.2458
 
 Training XGBRegressor
-R2 Score: 21.97
-RMSE: 5349.99
-NMAE: 0.2036
+R2 Score: 22.60
+RMSE: 5328.23
+NMAE: 0.2035
 
 Training XGBRFRegressor
-R2 Score: 28.27
-RMSE: 5129.48
+R2 Score: 28.28
+RMSE: 5129.07
 NMAE: 0.2033
 
