@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 from sklearn.preprocessing import StandardScaler
 
 class T1Dataset(Dataset):
-    def __init__(self, csv_file, input_dim=4):
+    def __init__(self, csv_file, input_dim=4, is_train = True):
         self.input_dim = input_dim
 
         data = pd.read_csv(csv_file)
