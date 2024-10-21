@@ -12,6 +12,10 @@ class moving_avg(nn.Module):
         self.avg = nn.AvgPool1d(kernel_size=kernel_size, stride=stride, padding=0)
 
     def forward(self, x):
+        # 만약 x가 2차원이면 3차원으로 변환
+        if len(x.shape) == 2:
+            x = x.unsqueeze(-1)
+        
         # padding on the both ends of time series
         front = x[:, 0:1, :].repeat(1, self.kernel_size - 1-math.floor((self.kernel_size - 1) // 2), 1)
         end = x[:, -1:, :].repeat(1, math.floor((self.kernel_size - 1) // 2), 1)
@@ -45,10 +49,13 @@ class series_decomp_multi(nn.Module):
 
     def forward(self, x): # x: [batch, sequence, num_features]
         x = x.float()
+        print(f"Input shape: {x.shape}")
         moving_mean=[]
         for func in self.moving_avg:
             moving_avg = func(x)
+            print(f"Moving avg shape: {moving_avg.shape}")
             moving_mean.append(moving_avg.unsqueeze(-1))
+        print(f"Moving avg after shape: {moving_avg.shape}")
         moving_mean=torch.cat(moving_mean,dim=-1)
         moving_mean = torch.sum(moving_mean*nn.Softmax(-1)(self.layer(x.unsqueeze(-1))),dim=-1)
         res = x - moving_mean
